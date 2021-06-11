@@ -1,5 +1,6 @@
 import os
-import pandas as pd
+import csv
+import time
 from datetime import datetime
 from src.sht21 import Si7021
 
@@ -10,6 +11,7 @@ if __name__ == "__main__":
     sensor.set_heater_level(3)
 
 
+    time_interval = 30
 
     temps = []
     hums = []
@@ -29,19 +31,24 @@ if __name__ == "__main__":
 
 
             if cur_iter >= dump_iters:
-                data = pd.DataFrame({
-                    "temperature": temps,
-                    "humidity": hums,
-                    "eventtime": eventtimes
-                })
-                data.to_csv(
-                    path,
-                    mode="a" if os.path.exist(path) else "w",
-                    header=not os.path.exist(path),
-                    index=False
-                )
+                print("dump", len(temps))
+
+                if not os.path.exists(path):
+                    write_head = True
+                else:
+                    write_head = False
+                with open(path, 'a+') as csv_file:
+                    csv_writer = csv.writer(csv_file, delimiter=',')
+                    if write_head:
+                        csv_writer.writerow(["temperature", "humidity", "eventtime"])
+                    for t, h, d in zip(temps, hums, eventtimes):
+                        csv_writer.writerow([t, h, d])
+                    temps = []
+                    hums = []
+                    eventtimes = []
+                    cur_iter = 0
             cur_iter += 1
         except Exception as e:
-            pass
+            print(e)
 
-        time.sleep(1)
+        time.sleep(time_interval)
